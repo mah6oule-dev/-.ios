@@ -17,11 +17,7 @@ jobs:
       run: |
         unzip -q Dafter_iOS_Project_FIXED.zip -d extracted_project
 
-    - name: Show Xcode information
-      run: |
-        xcodebuild -version
-
-    - name: Build iOS app
+    - name: Diagnostics & Build App
       run: |
         PROJ_PATH=$(find extracted_project -name "*.xcodeproj" -maxdepth 3 | head -n 1)
         if [ -z "$PROJ_PATH" ]; then
@@ -31,20 +27,28 @@ jobs:
         
         PROJ_DIR=$(dirname "$PROJ_PATH")
         cd "$PROJ_DIR"
-        echo "Building project at: $(pwd)"
+        echo "=== Project Location: $(pwd) ==="
         
-        # التجاوز الكامل لإعدادات التوقيع والـ Provisioning Profile
-        xcodebuild clean build \
+        # عرض تفاصيل المشروع والـ Schemes المتوفرة
+        xcodebuild -list -project *.xcodeproj
+        
+        # تحديد اسم الـ Scheme تلقائياً
+        SCHEME_NAME=$(xcodebuild -list -project *.xcodeproj | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
+        if [ -z "$SCHEME_NAME" ]; then
+          SCHEME_NAME="Dafter"
+        fi
+        echo "=== Target Scheme: $SCHEME_NAME ==="
+        
+        # البناء بتجاوز التوقيع كلياً
+        xcodebuild build \
                    -project *.xcodeproj \
-                   -scheme Dafter \
-                   -sdk iphoneos \
+                   -scheme "$SCHEME_NAME" \
+                   -sdk iphonesimulator \
                    -configuration Release \
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
                    CODE_SIGN_IDENTITY="" \
-                   CODE_SIGN_ENTITLEMENTS="" \
-                   CODE_SIGNING_INJECT_BASE_ENTITLEMENTS=NO \
-                   PROVISIONING_PROFILE_SPECIFIER=""
+                   AD_HOC_CODE_SIGNING_ALLOWED=YES
 
     - name: Create Payload and IPA
       run: |
