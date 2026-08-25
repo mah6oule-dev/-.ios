@@ -1,0 +1,42 @@
+name: Build Dafter iOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Extract Dafter project
+        run: |
+          unzip -o Dafter_iOS_Project.zip -d extracted
+          find extracted -name "*.xcodeproj" -print
+
+      - name: Build iOS app
+        run: |
+          xcodebuild \
+            -project extracted/Dafter_iOS/Dafter/Dafter.xcodeproj \
+            -scheme Dafter \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/Dafter.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+      - name: Create IPA
+        run: |
+          mkdir -p Payload
+          cp -R "Dafter.xcarchive/Products/Applications/Dafter.app" Payload/
+          zip -r Dafter.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dafter-iOS
+          path: Dafter.ipa
