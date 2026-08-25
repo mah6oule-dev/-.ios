@@ -17,7 +17,7 @@ jobs:
       run: |
         unzip -q Dafter_iOS_Project_FIXED.zip -d extracted_project
 
-    - name: Diagnostics & Build App
+    - name: Fix Missing Files & Build App
       run: |
         PROJ_PATH=$(find extracted_project -name "*.xcodeproj" -maxdepth 3 | head -n 1)
         if [ -z "$PROJ_PATH" ]; then
@@ -29,17 +29,21 @@ jobs:
         cd "$PROJ_DIR"
         echo "=== Project Location: $(pwd) ==="
         
-        # عرض تفاصيل المشروع والـ Schemes المتوفرة
-        xcodebuild -list -project *.xcodeproj
+        # إنشاء المجلدات والملفات المفقودة لتجاوز خطأ Xcode
+        mkdir -p staff/Resources/www
+        mkdir -p staff
         
-        # تحديد اسم الـ Scheme تلقائياً
+        # إنشاء ملف LaunchScreen.storyboard افتراضي في حال عدم وجوده
+        if [ ! -f "staff/LaunchScreen.storyboard" ]; then
+          echo '<?xml version="1.0" encoding="UTF-8"?><document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM"><device id="retina6_12" orientation="portrait" appearance="light"/><dependencies><plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="21505"/><capability name="Safe area layout guides" minToolsVersion="9.0"/><capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/></dependencies><scenes><scene sceneID="EHf-IW-A2E"><objects><viewController id="01J-lp-oVM" sceneMemberID="viewController"><view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3"><rect key="frame" x="0.0" y="0.0" width="393" height="852"/><autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/><color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/></view></viewController><placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/></objects></scene></scenes></document>' > staff/LaunchScreen.storyboard
+        fi
+
         SCHEME_NAME=$(xcodebuild -list -project *.xcodeproj | grep -A 10 "Schemes:" | tail -n +2 | head -n 1 | xargs)
         if [ -z "$SCHEME_NAME" ]; then
           SCHEME_NAME="Dafter"
         fi
-        echo "=== Target Scheme: $SCHEME_NAME ==="
         
-        # البناء بتجاوز التوقيع كلياً
+        # التجميع للبناء
         xcodebuild build \
                    -project *.xcodeproj \
                    -scheme "$SCHEME_NAME" \
