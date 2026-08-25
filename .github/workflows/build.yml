@@ -23,7 +23,6 @@ jobs:
 
     - name: Build iOS app
       run: |
-        # البحث عن مجلد المشروع المستهدف تلقائياً
         PROJ_PATH=$(find extracted_project -name "*.xcodeproj" -maxdepth 3 | head -n 1)
         if [ -z "$PROJ_PATH" ]; then
           echo "Error: No .xcodeproj file found!"
@@ -34,20 +33,21 @@ jobs:
         cd "$PROJ_DIR"
         echo "Building project at: $(pwd)"
         
-        # تنفيذ عملية البناء
-        xcodebuild -project *.xcodeproj \
+        # التجاوز الكامل لإعدادات التوقيع والـ Provisioning Profile
+        xcodebuild clean build \
+                   -project *.xcodeproj \
                    -scheme Dafter \
                    -sdk iphoneos \
                    -configuration Release \
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
                    CODE_SIGN_IDENTITY="" \
-                   AD_HOC_CODE_SIGNING_ALLOWED=YES \
-                   clean build
+                   CODE_SIGN_ENTITLEMENTS="" \
+                   CODE_SIGNING_INJECT_BASE_ENTITLEMENTS=NO \
+                   PROVISIONING_PROFILE_SPECIFIER=""
 
     - name: Create Payload and IPA
       run: |
-        # البحث عن ملف App المبني وتحويله إلى IPA
         APP_PATH=$(find extracted_project -name "*.app" -type d | head -n 1)
         if [ -z "$APP_PATH" ]; then
           echo "Error: .app file not found after build!"
