@@ -23,9 +23,18 @@ jobs:
 
     - name: Build iOS app
       run: |
-        cd extracted_project
-        if [ -d "Dafter_iOS_Project" ]; then cd Dafter_iOS_Project; fi
+        # البحث عن مجلد المشروع المستهدف تلقائياً
+        PROJ_PATH=$(find extracted_project -name "*.xcodeproj" -maxdepth 3 | head -n 1)
+        if [ -z "$PROJ_PATH" ]; then
+          echo "Error: No .xcodeproj file found!"
+          exit 1
+        fi
         
+        PROJ_DIR=$(dirname "$PROJ_PATH")
+        cd "$PROJ_DIR"
+        echo "Building project at: $(pwd)"
+        
+        # تنفيذ عملية البناء
         xcodebuild -project *.xcodeproj \
                    -scheme Dafter \
                    -sdk iphoneos \
@@ -38,17 +47,21 @@ jobs:
 
     - name: Create Payload and IPA
       run: |
-        cd extracted_project
-        if [ -d "Dafter_iOS_Project" ]; then cd Dafter_iOS_Project; fi
+        # البحث عن ملف App المبني وتحويله إلى IPA
+        APP_PATH=$(find extracted_project -name "*.app" -type d | head -n 1)
+        if [ -z "$APP_PATH" ]; then
+          echo "Error: .app file not found after build!"
+          exit 1
+        fi
         
+        WORKDIR=$(dirname "$APP_PATH")
+        cd "$WORKDIR"
         mkdir -p Payload
-        cp -r build/Release-iphoneos/*.app Payload/ 2>/dev/null || cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+        cp -r "$(basename "$APP_PATH")" Payload/
         zip -r Dafter.ipa Payload
 
     - name: Upload IPA artifact
       uses: actions/upload-artifact@v4
       with:
         name: Dafter-iOS-IPA
-        path: |
-          extracted_project/Dafter.ipa
-          extracted_project/Dafter_iOS_Project/Dafter.ipa
+        path: "**/Dafter.ipa"
