@@ -8,31 +8,40 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Download repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract Dafter project
+      - name: Extract project
         run: |
           unzip -o Dafter_iOS_Project.zip -d extracted
-          find extracted -name "*.xcodeproj" -print
+
+      - name: Show Xcode information
+        run: |
+          xcodebuild -version
+          xcodebuild \
+            -project extracted/Dafter_iOS/Dafter/Dafter.xcodeproj \
+            -list
 
       - name: Build iOS app
         run: |
           xcodebuild \
             -project extracted/Dafter_iOS/Dafter/Dafter.xcodeproj \
-            -scheme Dafter \
+            -target Dafter \
             -configuration Release \
             -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$PWD/Dafter.xcarchive" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            archive
+            build \
+            CONFIGURATION_BUILD_DIR="$PWD/build"
+
+      - name: Find app
+        run: |
+          find build -name "Dafter.app" -print
 
       - name: Create IPA
         run: |
           mkdir -p Payload
-          cp -R "Dafter.xcarchive/Products/Applications/Dafter.app" Payload/
+          cp -R build/Dafter.app Payload/
           zip -r Dafter.ipa Payload
 
       - name: Upload IPA
