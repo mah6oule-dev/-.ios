@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Extract project
       run: |
@@ -24,7 +24,6 @@ jobs:
     - name: Build iOS app
       run: |
         cd extracted_project
-        # إذا كان هناك مجلد فرعي داخل الملف المضغوط ننتقل إليه
         if [ -d "Dafter_iOS_Project" ]; then cd Dafter_iOS_Project; fi
         
         xcodebuild -project *.xcodeproj \
@@ -47,7 +46,7 @@ jobs:
         zip -r Dafter.ipa Payload
 
     - name: Upload IPA artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Dafter-iOS-IPA
         path: |
