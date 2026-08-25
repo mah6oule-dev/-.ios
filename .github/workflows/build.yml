@@ -1,6 +1,8 @@
-name: Build Dafter iOS
+name: Build iOS App
 
 on:
+  push:
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
@@ -8,44 +10,46 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Extract project
-        run: |
-          unzip -o Dafter_iOS_Project.zip -d extracted
+    - name: Extract project
+      run: |
+        unzip -q Dafter_iOS_Project_FIXED.zip -d extracted_project
 
-      - name: Show Xcode information
-        run: |
-          xcodebuild -version
-          xcodebuild \
-            -project extracted/Dafter_iOS/Dafter/Dafter.xcodeproj \
-            -list
+    - name: Show Xcode information
+      run: |
+        xcodebuild -version
 
-      - name: Build iOS app
-        run: |
-          xcodebuild \
-            -project extracted/Dafter_iOS/Dafter/Dafter.xcodeproj \
-            -target Dafter \
-            -configuration Release \
-            -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            build \
-            CONFIGURATION_BUILD_DIR="$PWD/build"
+    - name: Build iOS app
+      run: |
+        cd extracted_project
+        # إذا كان هناك مجلد فرعي داخل الملف المضغوط ننتقل إليه
+        if [ -d "Dafter_iOS_Project" ]; then cd Dafter_iOS_Project; fi
+        
+        xcodebuild -project *.xcodeproj \
+                   -scheme Dafter \
+                   -sdk iphoneos \
+                   -configuration Release \
+                   CODE_SIGNING_ALLOWED=NO \
+                   CODE_SIGNING_REQUIRED=NO \
+                   CODE_SIGN_IDENTITY="" \
+                   AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                   clean build
 
-      - name: Find app
-        run: |
-          find build -name "Dafter.app" -print
+    - name: Create Payload and IPA
+      run: |
+        cd extracted_project
+        if [ -d "Dafter_iOS_Project" ]; then cd Dafter_iOS_Project; fi
+        
+        mkdir -p Payload
+        cp -r build/Release-iphoneos/*.app Payload/ 2>/dev/null || cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+        zip -r Dafter.ipa Payload
 
-      - name: Create IPA
-        run: |
-          mkdir -p Payload
-          cp -R build/Dafter.app Payload/
-          zip -r Dafter.ipa Payload
-
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: Dafter-iOS
-          path: Dafter.ipa
+    - name: Upload IPA artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: Dafter-iOS-IPA
+        path: |
+          extracted_project/Dafter.ipa
+          extracted_project/Dafter_iOS_Project/Dafter.ipa
